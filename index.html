@@ -129,7 +129,7 @@
                     });
                     showToast("บันทึกบิลสำเร็จ!");
                     form.reset();
-                } catch(err) { showToast("เกิดข้อผิดพลาดในการสร้างบิล"); }
+                } catch(err) { showToast("เกิดข้อผิดพลาด"); }
             };
 
             const addAnnouncement = async (e) => {
@@ -141,7 +141,7 @@
                         method: 'POST',
                         body: JSON.stringify({ action: 'addAnnouncement', title: form.title.value, content: form.content.value })
                     });
-                    showToast("ประกาศสำเร็จ! ข้อมูลขึ้นหน้าผู้ใช้แล้ว");
+                    showToast("ประกาศสำเร็จ!");
                     form.reset();
                 } catch(err) { showToast("เกิดข้อผิดพลาด"); }
             };
@@ -199,6 +199,27 @@
                             </div>
                         )}
 
+                        {activeTab === 'repairs' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">🛠️ จัดการงานแจ้งซ่อม</h3>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                    <div className="p-3 bg-gray-50 rounded-lg border">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="font-bold text-blue-600">ล็อค A-01</span>
+                                            <select className="text-xs p-1 border rounded bg-white">
+                                                <option value="รับเรื่อง">🔴 รับเรื่อง</option>
+                                                <option value="กำลังดำเนินการ">🟡 กำลังดำเนินการ</option>
+                                                <option value="เสร็จสิ้น">🟢 เสร็จสิ้น</option>
+                                            </select>
+                                        </div>
+                                        <p className="text-sm text-gray-700">หลอดไฟหน้าร้านเสียครับ</p>
+                                        <p className="text-xs text-gray-400 mt-2">วันที่แจ้ง: 01/09/2026</p>
+                                    </div>
+                                    <p className="text-xs text-gray-400 text-center">* ประวัติการแจ้งซ่อมทั้งหมดถูกบันทึกในแท็บ Repairs บน Google Sheet</p>
+                                </div>
+                            </div>
+                        )}
+
                         {activeTab === 'stores' && (
                             <div>
                                 <h3 className="font-bold text-lg mb-4">🏪 เพิ่มร้านค้า / ผู้ใช้ใหม่</h3>
@@ -216,6 +237,7 @@
                     <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                         <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 ${activeTab==='bills'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">💰</span><span className="text-xs">บิล</span></button>
                         <button onClick={() => setActiveTab('announcements')} className={`flex flex-col items-center p-2 ${activeTab==='announcements'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">📢</span><span className="text-xs">ประกาศ</span></button>
+                        <button onClick={() => setActiveTab('repairs')} className={`flex flex-col items-center p-2 ${activeTab==='repairs'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🛠️</span><span className="text-xs">ซ่อม</span></button>
                         <button onClick={() => setActiveTab('stores')} className={`flex flex-col items-center p-2 ${activeTab==='stores'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🏪</span><span className="text-xs">ร้านค้า</span></button>
                     </div>
                 </div>
@@ -224,6 +246,25 @@
 
         const TenantDashboard = ({ user, onLogout }) => {
             const [activeTab, setActiveTab] = useState('home');
+
+            const submitRepair = async (e) => {
+                e.preventDefault();
+                showToast("กำลังส่งข้อมูลแจ้งซ่อม...");
+                const form = e.target;
+                try {
+                    await fetch(SYSTEM_DB_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'addRepair',
+                            stall: user.stall,
+                            category: form.category.value,
+                            detail: form.detail.value
+                        })
+                    });
+                    showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
+                    form.reset();
+                } catch(err) { showToast("เกิดข้อผิดพลาด"); }
+            };
 
             return (
                 <div className="app-container bg-gray-50 relative pb-20">
@@ -241,15 +282,30 @@
                                 <h3 className="font-bold text-lg mb-4">📢 ประกาศจากตลาด</h3>
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-yellow-400 space-y-2">
                                     <h4 className="font-bold text-gray-800 text-base">ยินดีต้อนรับสู่ 88 GARAGE</h4>
-                                    <p className="text-sm text-gray-600">แอดมินสามารถเพิ่มประกาศใหม่ผ่านหน้า Admin ได้ทันที ประกาศจะแสดงผลที่นี่ครับ</p>
+                                    <p className="text-sm text-gray-600">ติดตามข่าวสารประกาศและแจ้งซ่อมได้ผ่านเมนูด้านล่างนี้ครับ</p>
                                 </div>
                             </div>
                         )}
                         {activeTab === 'bills' && (
-                            <div className="text-center py-12 text-gray-400">กำลังพัฒนารวมบิลฝั่งผู้เช่า</div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border text-center py-8 text-gray-400">
+                                อยู่ระหว่างรอแอดมินออกบิลประจำเดือน
+                            </div>
                         )}
                         {activeTab === 'repair' && (
-                            <div className="text-center py-12 text-gray-400">ระบบแจ้งซ่อม</div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">🛠️ แจ้งซ่อมปัญหา</h3>
+                                <form onSubmit={submitRepair} className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+                                    <select name="category" className="w-full p-3 border rounded-lg bg-white" required>
+                                        <option value="">-- เลือกหมวดหมู่ปัญหา --</option>
+                                        <option value="ไฟฟ้า">ไฟฟ้า / หลอดไฟ</option>
+                                        <option value="ประปา">ประปา / น้ำรั่ว</option>
+                                        <option value="โครงสร้าง">โครงสร้าง / หลังคา</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </select>
+                                    <textarea name="detail" placeholder="รายละเอียดปัญหา..." className="w-full p-3 border rounded-lg h-28" required></textarea>
+                                    <button type="submit" className="w-full bg-red-500 text-white font-bold py-3 rounded-lg">ส่งแจ้งซ่อม</button>
+                                </form>
+                            </div>
                         )}
                     </div>
 
