@@ -22,7 +22,7 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState } = React;
 
         const showToast = (message) => {
             const toast = document.createElement('div');
@@ -82,7 +82,7 @@
                             <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white mt-1" required />
                         </div>
                         <button type="submit" disabled={isLoading} className="w-full bg-yellow-400 text-black font-bold rounded-lg px-4 py-3 mt-4">
-                            {isLoading ? 'กำลังตรวจสอบข้อมูล...' : 'เข้าสู่ระบบ'}
+                            {isLoading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
                         </button>
                     </form>
                 </div>
@@ -94,7 +94,7 @@
 
             const addStore = async (e) => {
                 e.preventDefault();
-                showToast("กำลังบันทึกข้อมูล...");
+                showToast("กำลังบันทึกร้านค้า...");
                 const form = e.target;
                 try {
                     await fetch(SYSTEM_DB_URL, {
@@ -103,12 +103,12 @@
                     });
                     showToast("บันทึกข้อมูลร้านค้าสำเร็จ!");
                     form.reset();
-                } catch(err) { showToast("เกิดข้อผิดพลาดในการบันทึก"); }
+                } catch(err) { showToast("เกิดข้อผิดพลาด"); }
             };
 
             const addBill = async (e) => {
                 e.preventDefault();
-                showToast("กำลังสร้างบิลและส่งลง Sheet...");
+                showToast("กำลังบันทึกบิลลง Sheet...");
                 const form = e.target;
                 try {
                     await fetch(SYSTEM_DB_URL, {
@@ -117,16 +117,33 @@
                             action: 'addBill',
                             stall: form.stall.value.trim(),
                             monthYear: form.monthYear.value,
-                            prevElec: form.prevElec.value,
-                            currElec: form.currElec.value,
-                            prevWater: form.prevWater.value,
-                            currWater: form.currWater.value,
-                            commonFee: form.commonFee.value || 0
+                            rentFee: form.rentFee.value || 0,
+                            commonFee: form.commonFee.value || 0,
+                            internetFee: form.internetFee.value || 0,
+                            prevWater: form.prevWater.value || 0,
+                            currWater: form.currWater.value || 0,
+                            prevElec: form.prevElec.value || 0,
+                            currElec: form.currElec.value || 0,
+                            discountPercent: form.discountPercent.value || 0
                         })
                     });
-                    showToast("ออกบิลสำเร็จ! ข้อมูลอยู่ใน Sheet Bills");
+                    showToast("บันทึกบิลสำเร็จ!");
                     form.reset();
                 } catch(err) { showToast("เกิดข้อผิดพลาดในการสร้างบิล"); }
+            };
+
+            const addAnnouncement = async (e) => {
+                e.preventDefault();
+                showToast("กำลังส่งประกาศ...");
+                const form = e.target;
+                try {
+                    await fetch(SYSTEM_DB_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'addAnnouncement', title: form.title.value, content: form.content.value })
+                    });
+                    showToast("ประกาศสำเร็จ! ข้อมูลขึ้นหน้าผู้ใช้แล้ว");
+                    form.reset();
+                } catch(err) { showToast("เกิดข้อผิดพลาด"); }
             };
 
             return (
@@ -139,31 +156,45 @@
                     <div className="p-4">
                         {activeTab === 'bills' && (
                             <div>
-                                <h3 className="font-bold text-lg mb-4">💰 ออกบิลรายเดือน (จดมิเตอร์)</h3>
+                                <h3 className="font-bold text-lg mb-4">💰 ออกบิลรายเดือน</h3>
                                 <form onSubmit={addBill} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
                                     <div className="grid grid-cols-2 gap-2">
                                         <input name="stall" placeholder="เลขล็อค (A-01)" required className="w-full p-3 border rounded-lg" />
                                         <input name="monthYear" type="month" required className="w-full p-3 border rounded-lg" />
                                     </div>
+                                    <input name="rentFee" type="number" placeholder="ค่าเช่า (บาท)" required className="w-full p-3 border rounded-lg" />
+                                    <input name="commonFee" type="number" placeholder="ค่าส่วนกลาง (บาท)" defaultValue="0" className="w-full p-3 border rounded-lg" />
+                                    <input name="internetFee" type="number" placeholder="ค่าอินเทอร์เน็ต (บาท)" defaultValue="0" className="w-full p-3 border rounded-lg" />
 
                                     <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
                                         <p className="text-sm font-bold text-blue-800 mb-2">💧 ค่าน้ำ (หน่วยละ 50฿)</p>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <input name="prevWater" type="number" placeholder="เลขเดิม" required className="w-full p-2 border rounded" />
-                                            <input name="currWater" type="number" placeholder="เลขใหม่" required className="w-full p-2 border rounded" />
+                                            <input name="prevWater" type="number" placeholder="เลขมิเตอร์เดิม" required className="w-full p-2 border rounded" />
+                                            <input name="currWater" type="number" placeholder="เลขมิเตอร์ใหม่" required className="w-full p-2 border rounded" />
                                         </div>
                                     </div>
 
                                     <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
                                         <p className="text-sm font-bold text-orange-800 mb-2">⚡ ค่าไฟ (หน่วยละ 10฿)</p>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <input name="prevElec" type="number" placeholder="เลขเดิม" required className="w-full p-2 border rounded" />
-                                            <input name="currElec" type="number" placeholder="เลขใหม่" required className="w-full p-2 border rounded" />
+                                            <input name="prevElec" type="number" placeholder="เลขมิเตอร์เดิม" required className="w-full p-2 border rounded" />
+                                            <input name="currElec" type="number" placeholder="เลขมิเตอร์ใหม่" required className="w-full p-2 border rounded" />
                                         </div>
                                     </div>
 
-                                    <input name="commonFee" type="number" placeholder="ค่าส่วนกลาง (ถ้ามี)" defaultValue="0" className="w-full p-3 border rounded-lg" />
+                                    <input name="discountPercent" type="number" placeholder="ส่วนลด (คิดเป็น % เช่น 5 หรือ 10)" defaultValue="0" className="w-full p-3 border rounded-lg" />
                                     <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg">บันทึกบิลลง Sheet</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {activeTab === 'announcements' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">📢 สร้างประกาศตลาด</h3>
+                                <form onSubmit={addAnnouncement} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                    <input name="title" placeholder="หัวข้อประกาศ" required className="w-full p-3 border rounded-lg" />
+                                    <textarea name="content" placeholder="เนื้อหาประกาศ..." required className="w-full p-3 border rounded-lg h-32"></textarea>
+                                    <button type="submit" className="w-full bg-yellow-500 text-black font-bold py-3 rounded-lg">โพสต์ประกาศ</button>
                                 </form>
                             </div>
                         )}
@@ -183,8 +214,49 @@
                     </div>
 
                     <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                        <button onClick={() => setActiveTab('stores')} className={`flex flex-col items-center p-2 ${activeTab==='stores'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🏪</span><span className="text-xs">ร้านค้า</span></button>
                         <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 ${activeTab==='bills'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">💰</span><span className="text-xs">บิล</span></button>
+                        <button onClick={() => setActiveTab('announcements')} className={`flex flex-col items-center p-2 ${activeTab==='announcements'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">📢</span><span className="text-xs">ประกาศ</span></button>
+                        <button onClick={() => setActiveTab('stores')} className={`flex flex-col items-center p-2 ${activeTab==='stores'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🏪</span><span className="text-xs">ร้านค้า</span></button>
+                    </div>
+                </div>
+            );
+        };
+
+        const TenantDashboard = ({ user, onLogout }) => {
+            const [activeTab, setActiveTab] = useState('home');
+
+            return (
+                <div className="app-container bg-gray-50 relative pb-20">
+                    <div className="bg-gray-900 text-white p-4 flex justify-between items-center sticky top-0 z-10">
+                        <div>
+                            <h2 className="font-bold text-lg text-yellow-400">{user.stall}</h2>
+                            <p className="text-xs text-gray-300">{user.name}</p>
+                        </div>
+                        <button onClick={onLogout} className="text-sm bg-gray-700 px-3 py-1 rounded">ออกระบบ</button>
+                    </div>
+
+                    <div className="p-4">
+                        {activeTab === 'home' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">📢 ประกาศจากตลาด</h3>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-yellow-400 space-y-2">
+                                    <h4 className="font-bold text-gray-800 text-base">ยินดีต้อนรับสู่ 88 GARAGE</h4>
+                                    <p className="text-sm text-gray-600">แอดมินสามารถเพิ่มประกาศใหม่ผ่านหน้า Admin ได้ทันที ประกาศจะแสดงผลที่นี่ครับ</p>
+                                </div>
+                            </div>
+                        )}
+                        {activeTab === 'bills' && (
+                            <div className="text-center py-12 text-gray-400">กำลังพัฒนารวมบิลฝั่งผู้เช่า</div>
+                        )}
+                        {activeTab === 'repair' && (
+                            <div className="text-center py-12 text-gray-400">ระบบแจ้งซ่อม</div>
+                        )}
+                    </div>
+
+                    <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4">
+                        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center p-2 w-1/3 ${activeTab==='home'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">📢</span><span className="text-xs">หน้าหลัก</span></button>
+                        <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 w-1/3 ${activeTab==='bills'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🧾</span><span className="text-xs">บิลค่าเช่า</span></button>
+                        <button onClick={() => setActiveTab('repair')} className={`flex flex-col items-center p-2 w-1/3 ${activeTab==='repair'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🛠️</span><span className="text-xs">แจ้งซ่อม</span></button>
                     </div>
                 </div>
             );
@@ -194,13 +266,7 @@
             const [user, setUser] = useState(null);
             if (!user) return <LoginView onLogin={(stall, name) => setUser({ stall, name })} />;
             if (user.stall === 'admin') return <AdminDashboard onLogout={() => setUser(null)} />;
-            return (
-                <div className="app-container p-6 bg-gray-50 flex flex-col justify-center items-center h-screen">
-                    <h2 className="text-2xl font-bold mb-4">{user.stall} - {user.name}</h2>
-                    <p className="mb-4">หน้าของผู้เช่ายังคงเหมือนเดิม ระบบอัปเดตเฉพาะฝั่งแอดมินเรียบร้อยแล้ว</p>
-                    <button onClick={() => setUser(null)} className="bg-red-500 text-white px-6 py-2 rounded-lg font-bold">ออกจากระบบ</button>
-                </div>
-            );
+            return <TenantDashboard user={user} onLogout={() => setUser(null)} />;
         };
 
         ReactDOM.render(<App />, document.getElementById('root'));
