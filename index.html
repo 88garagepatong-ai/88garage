@@ -10,15 +10,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // =========================================================================
-        // 🔴🔴🔴 นำ URL ของ GOOGLE APPS SCRIPT (WEB APP) มาวางที่บรรทัดด้านล่างนี้ 🔴🔴🔴
+        // 🔴🔴🔴 นำ URL ของ GOOGLE APPS SCRIPT มาวางในเครื่องหมายคำพูดด้านล่างนี้ 🔴🔴🔴
         // =========================================================================
-        const SYSTEM_DB_URL = https://script.google.com/macros/s/AKfycbykSUkXvWB57Iz9SFFCqpMuGF0tnNv6yMHwdi1ad8f63pURuEZhC8-SgvXCq8nMnQS7Nw/exec"; 
-        // ตัวอย่าง: const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycby.../exec";
+        const SYSTEM_DB_URL = https://script.google.com/macros/s/AKfycbykSUkXvWB57Iz9SFFCqpMuGF0tnNv6yMHwdi1ad8f63pURuEZhC8-SgvXCq8nMnQS7Nw/exec 
     </script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
-        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; padding-bottom: 70px; }
+        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.3s; }
+        .nav-bar { max-width: 480px; margin: 0 auto; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -44,31 +44,32 @@
 
             const handleLogin = async (e) => {
                 e.preventDefault();
-                if (stall === 'admin' && password === '887799') {
-                    onLogin('admin', 'ADMIN_ROLE');
-                    showToast('เข้าสู่ระบบผู้ดูแลสำเร็จ');
+                const cleanStall = stall.trim();
+                const cleanPass = password.trim();
+
+                if (cleanStall === 'admin' && cleanPass === '887799') {
+                    onLogin('admin', 'ผู้ดูแลระบบ');
+                    showToast('เข้าสู่ระบบ Admin สำเร็จ');
                     return;
                 }
 
                 if (!SYSTEM_DB_URL || SYSTEM_DB_URL.includes("ใส่_URL")) {
-                    showToast("แอดมินยังไม่ได้ตั้งค่าเชื่อมต่อฐานข้อมูลในระบบ!");
+                    showToast("ข้อผิดพลาด: ยังไม่ได้ตั้งค่า URL ของฐานข้อมูล");
                     return;
                 }
 
                 setIsLoading(true);
                 try {
-                    // ส่งข้อมูลไปเช็คที่ Google Sheets แบบ Real-time
                     const response = await fetch(SYSTEM_DB_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ action: 'login', stall: stall, password: password })
+                        body: JSON.stringify({ action: 'login', stall: cleanStall, password: cleanPass })
                     });
-                    
                     const result = await response.json();
                     if (result.status === 'success') {
-                        onLogin(stall.toUpperCase(), result.storeName);
+                        onLogin(cleanStall.toUpperCase(), result.storeName);
                         showToast(`ยินดีต้อนรับร้าน: ${result.storeName}`);
                     } else {
-                        showToast(result.message || 'ข้อมูลไม่ถูกต้อง');
+                        showToast(result.message || 'ชื่อล็อคหรือรหัสผ่านไม่ถูกต้อง');
                     }
                 } catch (error) {
                     showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
@@ -77,7 +78,7 @@
             };
 
             return (
-                <div className="flex flex-col h-screen justify-center px-8 bg-gray-900 text-white">
+                <div className="flex flex-col h-screen justify-center px-8 bg-gray-900 text-white app-container">
                     <div className="text-center mb-10">
                         <h1 className="text-5xl font-bold text-yellow-400 mb-2">88 GARAGE</h1>
                         <p className="text-gray-400">ระบบจัดการพื้นที่เช่า</p>
@@ -85,99 +86,209 @@
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
                             <label className="text-sm text-gray-400">หมายเลขล็อค</label>
-                            <input type="text" value={stall} onChange={e => setStall(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-400" placeholder="เช่น A-01" required />
+                            <input type="text" value={stall} onChange={e => setStall(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white mt-1" placeholder="เช่น A-01" required />
                         </div>
                         <div>
                             <label className="text-sm text-gray-400">รหัสผ่าน</label>
-                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white mt-1" required />
                         </div>
                         <button type="submit" disabled={isLoading} className="w-full bg-yellow-400 text-black font-bold rounded-lg px-4 py-3 mt-4">
-                            {isLoading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
+                            {isLoading ? 'กำลังตรวจสอบข้อมูล...' : 'เข้าสู่ระบบ'}
                         </button>
                     </form>
                 </div>
             );
         };
 
-        // --- หน้าหลักของแอป ---
-        const App = () => {
-            const [user, setUser] = useState(null);
+        // --- เมนูหลักของ Admin ---
+        const AdminDashboard = ({ onLogout }) => {
+            const [activeTab, setActiveTab] = useState('stores');
 
-            if (!user) return <LoginView onLogin={(stall, name) => setUser({ stall, name })} />;
+            const addStore = async (e) => {
+                e.preventDefault();
+                showToast("กำลังบันทึกข้อมูลลง Sheet...");
+                const form = e.target;
+                try {
+                    await fetch(SYSTEM_DB_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'addStore',
+                            stallNumber: form.stall.value.trim(),
+                            storeName: form.name.value.trim(),
+                            baseRent: form.rent.value,
+                            password: form.pass.value.trim()
+                        })
+                    });
+                    showToast("บันทึกข้อมูลร้านค้าสำเร็จ! ผู้ใช้เข้าสู่ระบบได้ทันที");
+                    form.reset();
+                } catch(err) { showToast("เกิดข้อผิดพลาดในการบันทึก"); }
+            };
 
-            // ถ้าเป็น Admin
-            if (user.stall === 'admin') {
-                return (
-                    <div className="app-container p-6 bg-gray-100">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold">Admin Dashboard</h2>
-                            <button onClick={() => setUser(null)} className="text-red-500 font-bold">ออกระบบ</button>
-                        </div>
-                        
-                        <div className="bg-white p-4 rounded-lg shadow mb-4">
-                            <h3 className="font-bold mb-3 border-b pb-2">➕ สร้างล็อคเช่าใหม่</h3>
-                            <form onSubmit={async (e) => {
-                                e.preventDefault();
-                                showToast("กำลังบันทึกข้อมูลลงระบบ...");
-                                const form = e.target;
-                                await fetch(SYSTEM_DB_URL, {
-                                    method: 'POST',
-                                    body: JSON.stringify({
-                                        action: 'addStore',
-                                        stallNumber: form.stall.value,
-                                        storeName: form.name.value,
-                                        baseRent: form.rent.value,
-                                        password: form.pass.value
-                                    })
-                                });
-                                showToast("สร้างร้านค้าสำเร็จ! ผู้เช่าสามารถล็อกอินได้ทันที");
-                                form.reset();
-                            }}>
-                                <input name="stall" placeholder="หมายเลขล็อค (A-01)" className="w-full mb-2 p-2 border rounded" required />
-                                <input name="name" placeholder="ชื่อร้าน" className="w-full mb-2 p-2 border rounded" required />
-                                <input name="rent" type="number" placeholder="ค่าเช่า (บาท)" className="w-full mb-2 p-2 border rounded" required />
-                                <input name="pass" placeholder="ตั้งรหัสผ่านให้ผู้เช่า" className="w-full mb-3 p-2 border rounded" required />
-                                <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded font-bold">บันทึกข้อมูลร้านค้า</button>
-                            </form>
-                        </div>
-                        <p className="text-xs text-gray-500 text-center">** ข้อมูลจะถูกบันทึกลง Google Sheets ทันที **</p>
-                    </div>
-                );
-            }
-
-            // ถ้าเป็นผู้เช่า
             return (
-                <div className="app-container p-6">
-                    <div className="flex justify-between items-center mb-6 border-b pb-4">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800">{user.stall}</h2>
-                            <p className="text-gray-500 text-sm">ร้าน: {user.name}</p>
-                        </div>
-                        <button onClick={() => setUser(null)} className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-bold">ออกระบบ</button>
+                <div className="app-container bg-gray-50 relative pb-20">
+                    <div className="bg-gray-900 text-white p-4 flex justify-between items-center sticky top-0 z-10">
+                        <h2 className="font-bold text-lg text-yellow-400">Admin Panel</h2>
+                        <button onClick={onLogout} className="text-sm bg-gray-700 px-3 py-1 rounded">ออกระบบ</button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <button onClick={() => showToast("เปิดดูบิลค่าเช่า")} className="bg-white border-2 border-yellow-400 p-4 rounded-xl shadow-sm flex flex-col items-center">
-                            <span className="text-3xl mb-2">🧾</span>
-                            <span className="font-bold">บิลค่าเช่า</span>
-                        </button>
-                        <button onClick={async () => {
-                            const detail = prompt("กรอกปัญหาที่ต้องการแจ้งซ่อม:");
-                            if(detail) {
-                                showToast("กำลังส่งข้อมูล...");
-                                await fetch(SYSTEM_DB_URL, {
-                                    method: 'POST',
-                                    body: JSON.stringify({ action: 'addRepair', stall: user.stall, category: 'แจ้งปัญหา', detail: detail })
-                                });
-                                showToast("ส่งแจ้งซ่อมเรียบร้อยแล้ว!");
-                            }
-                        }} className="bg-white border-2 border-gray-200 p-4 rounded-xl shadow-sm flex flex-col items-center">
-                            <span className="text-3xl mb-2">🛠️</span>
-                            <span className="font-bold">แจ้งซ่อม</span>
-                        </button>
+                    <div className="p-4">
+                        {activeTab === 'stores' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">🏪 เพิ่มร้านค้า / ผู้ใช้ใหม่</h3>
+                                <form onSubmit={addStore} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                    <input name="stall" placeholder="หมายเลขล็อค (เช่น A-01)" className="w-full p-3 border rounded-lg" required />
+                                    <input name="name" placeholder="ชื่อร้าน" className="w-full p-3 border rounded-lg" required />
+                                    <input name="rent" type="number" placeholder="ค่าเช่าพื้นฐาน (บาท)" className="w-full p-3 border rounded-lg" required />
+                                    <input name="pass" placeholder="ตั้งรหัสผ่านให้ผู้เช่า" className="w-full p-3 border rounded-lg" required />
+                                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">บันทึกร้านค้าใหม่</button>
+                                </form>
+                                <p className="text-xs text-gray-500 mt-4 text-center">ข้อมูลจะถูกส่งไปที่ Google Sheet อัตโนมัติ</p>
+                            </div>
+                        )}
+
+                        {activeTab === 'bills' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">💰 ออกบิลรายเดือน</h3>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                    <input placeholder="หมายเลขล็อค (เช่น A-01)" className="w-full p-3 border rounded-lg" />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-gray-500">จำนวนหน่วยค่าไฟ (หน่วยละ 10฿)</label>
+                                            <input type="number" placeholder="หน่วยไฟ" className="w-full p-3 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500">จำนวนหน่วยค่าน้ำ (หน่วยละ 50฿)</label>
+                                            <input type="number" placeholder="หน่วยน้ำ" className="w-full p-3 border rounded-lg" />
+                                        </div>
+                                    </div>
+                                    <input type="number" placeholder="ค่าส่วนกลาง (บาท)" className="w-full p-3 border rounded-lg" />
+                                    <button onClick={() => showToast("ฟังก์ชันนี้จะส่งข้อมูลไป Sheet ในอนาคต")} className="w-full bg-green-600 text-white font-bold py-3 rounded-lg">บันทึกบิล</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'repairs' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">🛠️ รายการแจ้งซ่อม</h3>
+                                <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-400">
+                                    ดูประวัติการแจ้งซ่อมทั้งหมดได้ที่ Google Sheet (แท็บ Repairs)
+                                </div>
+                            </div>
+                        )}
+                        
+                        {activeTab === 'announcements' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">📢 สร้างประกาศตลาด</h3>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                    <input placeholder="หัวข้อประกาศ" className="w-full p-3 border rounded-lg" />
+                                    <textarea placeholder="รายละเอียด" className="w-full p-3 border rounded-lg h-24"></textarea>
+                                    <button onClick={() => showToast("สร้างประกาศสำเร็จ")} className="w-full bg-yellow-500 text-black font-bold py-3 rounded-lg">ลงประกาศ</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4">
+                        <button onClick={() => setActiveTab('stores')} className={`flex flex-col items-center p-2 ${activeTab==='stores'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🏪</span><span className="text-xs">ร้านค้า</span></button>
+                        <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 ${activeTab==='bills'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">💰</span><span className="text-xs">บิล</span></button>
+                        <button onClick={() => setActiveTab('repairs')} className={`flex flex-col items-center p-2 ${activeTab==='repairs'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🛠️</span><span className="text-xs">ซ่อม</span></button>
+                        <button onClick={() => setActiveTab('announcements')} className={`flex flex-col items-center p-2 ${activeTab==='announcements'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">📢</span><span className="text-xs">ประกาศ</span></button>
                     </div>
                 </div>
             );
+        };
+
+        // --- เมนูหลักของผู้เช่า ---
+        const TenantDashboard = ({ user, onLogout }) => {
+            const [activeTab, setActiveTab] = useState('home');
+
+            const submitRepair = async (e) => {
+                e.preventDefault();
+                showToast("กำลังส่งข้อมูลแจ้งซ่อม...");
+                const form = e.target;
+                try {
+                    await fetch(SYSTEM_DB_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'addRepair',
+                            stall: user.stall,
+                            category: form.category.value,
+                            detail: form.detail.value
+                        })
+                    });
+                    showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
+                    form.reset();
+                } catch(err) { showToast("เกิดข้อผิดพลาดในการส่งข้อมูล"); }
+            };
+
+            return (
+                <div className="app-container bg-gray-50 relative pb-20">
+                    <div className="bg-gray-900 text-white p-4 flex justify-between items-center sticky top-0 z-10">
+                        <div>
+                            <h2 className="font-bold text-lg text-yellow-400">{user.stall}</h2>
+                            <p className="text-xs text-gray-300">{user.name}</p>
+                        </div>
+                        <button onClick={onLogout} className="text-sm bg-gray-700 px-3 py-1 rounded">ออกระบบ</button>
+                    </div>
+
+                    <div className="p-4">
+                        {activeTab === 'home' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">📢 ประกาศจากตลาด</h3>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-3 border-l-4 border-yellow-400">
+                                    <h4 className="font-bold text-gray-800">ยินดีต้อนรับสู่ 88 GARAGE</h4>
+                                    <p className="text-sm text-gray-500 mt-1">สามารถตรวจสอบบิลค่าเช่า และแจ้งซ่อมล็อคได้ผ่านระบบนี้</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'bills' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">🧾 บิลค่าเช่า</h3>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                    <p className="text-center text-gray-400 text-sm py-8">อยู่ระหว่างรอแอดมินออกบิลประจำเดือน</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'repair' && (
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">🛠️ แจ้งซ่อม</h3>
+                                <form onSubmit={submitRepair} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                    <select name="category" className="w-full p-3 border rounded-lg bg-white" required>
+                                        <option value="">-- เลือกหมวดหมู่ปัญหา --</option>
+                                        <option value="ไฟฟ้า">หลอดไฟ / ไฟฟ้า</option>
+                                        <option value="ประปา">น้ำรั่ว / ประปา</option>
+                                        <option value="โครงสร้าง">หลังคา / โครงสร้าง</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </select>
+                                    <textarea name="detail" placeholder="อธิบายรายละเอียดปัญหา..." className="w-full p-3 border rounded-lg h-24" required></textarea>
+                                    <button type="submit" className="w-full bg-red-500 text-white font-bold py-3 rounded-lg">ส่งแจ้งซ่อม</button>
+                                </form>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4">
+                        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center p-2 w-1/3 ${activeTab==='home'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">📢</span><span className="text-xs">หน้าหลัก</span></button>
+                        <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 w-1/3 ${activeTab==='bills'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🧾</span><span className="text-xs">บิลค่าเช่า</span></button>
+                        <button onClick={() => setActiveTab('repair')} className={`flex flex-col items-center p-2 w-1/3 ${activeTab==='repair'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🛠️</span><span className="text-xs">แจ้งซ่อม</span></button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- ส่วนควบคุมหลัก ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            
+            if (!user) {
+                return <LoginView onLogin={(stall, name) => setUser({ stall, name })} />;
+            }
+            if (user.stall === 'admin') {
+                return <AdminDashboard onLogout={() => setUser(null)} />;
+            }
+            return <TenantDashboard user={user} onLogout={() => setUser(null)} />;
         };
 
         ReactDOM.render(<App />, document.getElementById('root'));
