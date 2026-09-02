@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // 🔴 วาง URL ใหม่ล่าสุดที่คัดลอกมาในเครื่องหมายคำพูดด้านล่างนี้ 🔴
+        // ใส่ URL ล่าสุดของคุณไว้ให้แล้วครับ
         const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbwOS_LgNJxAty50D0mxU7LizPUztAoAS8WBjtfGI3I1prb6WSwEjKavGqU97CNXdxB_Vg/exec"; 
     </script>
     <style>
@@ -62,7 +62,7 @@
                         showToast(result.message || 'ชื่อล็อคหรือรหัสผ่านไม่ถูกต้อง');
                     }
                 } catch (error) {
-                    showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (โปรดตรวจสอบ URL)");
+                    showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบ URL");
                 }
                 setIsLoading(false);
             };
@@ -94,14 +94,18 @@
             const [activeTab, setActiveTab] = useState('bills');
             const [repairs, setRepairs] = useState([]);
             const [bills, setBills] = useState([]);
+            const [stores, setStores] = useState([]);
+            const [billToDelete, setBillToDelete] = useState(null);
 
             const loadAdminData = async () => {
                 try {
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        setRepairs((data.repairs || []).reverse()); // เอาล่าสุดขึ้นก่อน
+                        // Reverse arrays so newest comes first
+                        setRepairs((data.repairs || []).reverse());
                         setBills((data.bills || []).reverse());
+                        setStores(data.stores || []);
                     }
                 } catch (err) {}
             };
@@ -115,11 +119,11 @@
                     body: JSON.stringify({ action: 'updateRepairStatus', repairId: repairId, repairStatus: newStatus })
                 });
                 showToast("อัปเดตสำเร็จ!");
-                setTimeout(loadAdminData, 1000); 
+                setTimeout(loadAdminData, 1000);
             };
 
             const updatePaymentStatus = async (billId, newStatus) => {
-                showToast("กำลังอัปเดตสถานะเงิน...");
+                showToast("กำลังอัปเดตสถานะการจ่ายเงิน...");
                 await fetch(SYSTEM_DB_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'updateBillStatus', billId: billId, paymentStatus: newStatus })
@@ -128,9 +132,19 @@
                 setTimeout(loadAdminData, 1000);
             };
 
+            const deleteBill = async (billId) => {
+                showToast("กำลังลบบิล...");
+                await fetch(SYSTEM_DB_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'deleteBill', billId: billId })
+                });
+                showToast("ลบบิลสำเร็จ!");
+                setTimeout(loadAdminData, 1000);
+            };
+
             const addStore = async (e) => {
                 e.preventDefault();
-                showToast("กำลังบันทึก...");
+                showToast("กำลังบันทึกร้านค้า...");
                 const form = e.target;
                 await fetch(SYSTEM_DB_URL, {
                     method: 'POST',
@@ -138,25 +152,39 @@
                 });
                 showToast("บันทึกร้านค้าสำเร็จ!");
                 form.reset();
+                setTimeout(loadAdminData, 1000);
             };
 
             const addBill = async (e) => {
                 e.preventDefault();
                 const form = e.target;
-                if (Number(form.currWater.value) < Number(form.prevWater.value) || Number(form.currElec.value) < Number(form.prevElec.value)) {
-                    alert("⚠️ เลขมิเตอร์ใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
+                
+                if (Number(form.currWater.value) < Number(form.prevWater.value)) {
+                    alert("⚠️ เลขมิเตอร์น้ำใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
                     return;
                 }
+                if (Number(form.currElec.value) < Number(form.prevElec.value)) {
+                    alert("⚠️ เลขมิเตอร์ไฟใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
+                    return;
+                }
+
                 showToast("กำลังออกบิล...");
                 await fetch(SYSTEM_DB_URL, {
                     method: 'POST',
                     body: JSON.stringify({
-                        action: 'addBill', stall: form.stall.value.trim(), monthYear: form.monthYear.value,
-                        rentFee: form.rentFee.value || 0, arrears: form.arrears.value || 0,
-                        prevWater: form.prevWater.value || 0, currWater: form.currWater.value || 0,
-                        prevElec: form.prevElec.value || 0, currElec: form.currElec.value || 0,
-                        commonFee: form.commonFee.value || 0, internetFee: form.internetFee.value || 0,
-                        otherFee: form.otherFee.value || 0, discountPercent: form.discountPercent.value || 0
+                        action: 'addBill',
+                        stall: form.stall.value.trim(),
+                        monthYear: form.monthYear.value,
+                        rentFee: form.rentFee.value || 0,
+                        arrears: form.arrears.value || 0,
+                        prevWater: form.prevWater.value || 0,
+                        currWater: form.currWater.value || 0,
+                        prevElec: form.prevElec.value || 0,
+                        currElec: form.currElec.value || 0,
+                        commonFee: form.commonFee.value || 0,
+                        internetFee: form.internetFee.value || 0,
+                        otherFee: form.otherFee.value || 0,
+                        discountPercent: form.discountPercent.value || 0
                     })
                 });
                 showToast("ออกบิลสำเร็จ!");
@@ -193,7 +221,7 @@
                                         <input name="monthYear" type="month" required className="w-full p-3 border rounded-lg" />
                                     </div>
                                     <input name="rentFee" type="number" placeholder="ค่าเช่า (บาท)" required className="w-full p-3 border rounded-lg" />
-                                    <input name="arrears" type="number" placeholder="ค่าค้างชำระ (บาท)" defaultValue="0" className="w-full p-3 border rounded-lg" />
+                                    <input name="arrears" type="number" placeholder="ค่าเช่าค้างชำระ (บาท)" defaultValue="0" className="w-full p-3 border rounded-lg" />
                                     <div className="p-3 bg-blue-50 rounded-lg border">
                                         <p className="text-sm font-bold text-blue-800 mb-2">💧 ค่าน้ำ (หน่วยละ 50฿)</p>
                                         <div className="grid grid-cols-2 gap-2">
@@ -208,30 +236,59 @@
                                             <input name="currElec" type="number" placeholder="เลขใหม่" required className="w-full p-2 border rounded" />
                                         </div>
                                     </div>
-                                    <input name="commonFee" type="number" placeholder="ส่วนกลาง" defaultValue="0" className="w-full p-3 border rounded-lg" />
-                                    <input name="internetFee" type="number" placeholder="อินเทอร์เน็ต" defaultValue="0" className="w-full p-3 border rounded-lg" />
-                                    <input name="otherFee" type="number" placeholder="บริการอื่นๆ" defaultValue="0" className="w-full p-3 border rounded-lg" />
+                                    <input name="commonFee" type="number" placeholder="ค่าส่วนกลาง" defaultValue="0" className="w-full p-3 border rounded-lg" />
+                                    <input name="internetFee" type="number" placeholder="ค่าอินเทอร์เน็ต" defaultValue="0" className="w-full p-3 border rounded-lg" />
+                                    <input name="otherFee" type="number" placeholder="ค่าบริการอื่นๆ" defaultValue="0" className="w-full p-3 border rounded-lg" />
                                     <input name="discountPercent" type="number" placeholder="ส่วนลด (%)" defaultValue="0" className="w-full p-3 border rounded-lg" />
-                                    <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg">บันทึกบิล</button>
+                                    <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg">บันทึกบิลลง Sheet</button>
                                 </form>
 
                                 <div className="mt-6">
                                     <h4 className="font-bold text-md mb-2">📋 จัดการสถานะบิล</h4>
                                     <div className="space-y-2">
-                                        {bills.map((b, idx) => (
-                                            <div key={idx} className="bg-white p-3 rounded-xl border flex justify-between items-center text-sm">
-                                                <div>
-                                                    <p className="font-bold">{b["หมายเลขล็อค"]} ({b["ประจำเดือน"]})</p>
-                                                    <p className="text-xs text-gray-500">ยอด: ฿{b["ยอดรวมสุทธิ"]}</p>
+                                        {bills.length === 0 ? (
+                                            <p className="text-sm text-gray-500 text-center p-4 bg-white rounded-lg border">ยังไม่มีรายการบิล</p>
+                                        ) : (
+                                            bills.map((b, idx) => (
+                                                <div key={idx} className="bg-white p-3 rounded-xl border flex flex-col space-y-2 text-sm shadow-sm">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-bold text-gray-800 text-base">ล็อค: {b["หมายเลขล็อค"]}</p>
+                                                            <p className="text-xs text-gray-500">บิลประจำเดือน: {b["ประจำเดือน"]}</p>
+                                                            <p className="text-sm font-bold text-blue-600 mt-1">ยอดชำระ: ฿{Number(b["ยอดรวมสุทธิ"]).toLocaleString()}</p>
+                                                        </div>
+                                                        <div className="flex flex-col items-end space-y-2">
+                                                            <select value={b["สถานะการจ่ายเงิน"]} onChange={(e) => updatePaymentStatus(b["ID บิล"], e.target.value)} className="text-xs p-1.5 border rounded bg-gray-50 font-bold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                                                <option value="รอชำระ">🟡 รอชำระ</option>
+                                                                <option value="จ่ายแล้ว">🟢 จ่ายแล้ว</option>
+                                                                <option value="ค้างจ่าย">🔴 ค้างจ่าย</option>
+                                                                <option value="จ่ายล่าช้า">🟠 จ่ายล่าช้า</option>
+                                                            </select>
+                                                            <button onClick={() => setBillToDelete(b["ID บิล"])} className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100 transition-colors">
+                                                                🗑️ ลบบิล
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <select value={b["สถานะการจ่ายเงิน"]} onChange={(e) => updatePaymentStatus(b["ID บิล"], e.target.value)} className="text-xs p-2 border rounded bg-white font-bold">
-                                                    <option value="รอชำระ">🟡 รอชำระ</option>
-                                                    <option value="จ่ายแล้ว">🟢 จ่ายแล้ว</option>
-                                                    <option value="ค้างจ่าย">🔴 ค้างจ่าย</option>
-                                                    <option value="จ่ายล่าช้า">🟠 จ่ายล่าช้า</option>
-                                                </select>
-                                            </div>
-                                        ))}
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {billToDelete && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                                <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
+                                    <div className="text-center mb-5">
+                                        <div className="text-4xl mb-2">⚠️</div>
+                                        <h3 className="text-lg font-bold text-gray-900">ยืนยันการลบ</h3>
+                                        <p className="text-sm text-gray-600 mt-1">คุณต้องการลบบิลนี้ใช่หรือไม่?<br/>(ลบแล้วข้อมูลใน Sheet จะหายไปด้วย)</p>
+                                    </div>
+                                    <div className="flex justify-between space-x-3">
+                                        <button onClick={() => setBillToDelete(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-800 rounded-lg text-sm font-bold hover:bg-gray-200">ยกเลิก</button>
+                                        <button onClick={() => { deleteBill(billToDelete); setBillToDelete(null); }} className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">ลบทันที</button>
                                     </div>
                                 </div>
                             </div>
@@ -239,21 +296,26 @@
 
                         {activeTab === 'repairs' && (
                             <div>
-                                <h3 className="font-bold text-lg mb-4">🛠️ รายการแจ้งซ่อม</h3>
+                                <h3 className="font-bold text-lg mb-4">🛠️ รายการแจ้งซ่อมจากผู้เช่า</h3>
                                 <div className="space-y-3">
-                                    {repairs.length === 0 ? <p className="text-center text-gray-400 py-8 bg-white rounded-xl border">ไม่มีรายการ</p> : repairs.map((r, idx) => (
-                                        <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border space-y-2">
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-bold text-blue-600">{r["หมายเลขล็อค"]} ({r["หมวดหมู่"]})</span>
-                                                <select value={r["สถานะซ่อม"]} onChange={(e) => updateRepairStatus(r["ID แจ้งซ่อม"], e.target.value)} className="text-xs p-1 border rounded bg-white font-bold">
-                                                    <option value="รับเรื่อง">🔴 รับเรื่อง</option>
-                                                    <option value="กำลังดำเนินการ">🟡 กำลังดำเนินการ</option>
-                                                    <option value="เสร็จสิ้น">🟢 เสร็จสิ้น</option>
-                                                </select>
+                                    {repairs.length === 0 ? (
+                                        <p className="text-center text-gray-400 py-8 bg-white rounded-xl border">ยังไม่มีรายการแจ้งซ่อม</p>
+                                    ) : (
+                                        repairs.map((r, idx) => (
+                                            <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-bold text-blue-600">{r["หมายเลขล็อค"]} ({r["หมวดหมู่"]})</span>
+                                                    <select value={r["สถานะซ่อม"]} onChange={(e) => updateRepairStatus(r["ID แจ้งซ่อม"], e.target.value)} className="text-xs p-1 border rounded bg-white font-bold">
+                                                        <option value="รับเรื่อง">🔴 รับเรื่อง</option>
+                                                        <option value="กำลังดำเนินการ">🟡 กำลังดำเนินการ</option>
+                                                        <option value="เสร็จสิ้น">🟢 เสร็จสิ้น</option>
+                                                    </select>
+                                                </div>
+                                                <p className="text-sm text-gray-700">{r["รายละเอียด"]}</p>
+                                                <p className="text-xs text-gray-400">แจ้งเมื่อ: {r["วันที่"]}</p>
                                             </div>
-                                            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{r["รายละเอียด"]}</p>
-                                        </div>
-                                    ))}
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -263,31 +325,31 @@
                                 <h3 className="font-bold text-lg mb-4">📢 สร้างประกาศ</h3>
                                 <form onSubmit={addAnnouncement} className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
                                     <input name="title" placeholder="หัวข้อประกาศ" required className="w-full p-3 border rounded-lg" />
-                                    <textarea name="content" placeholder="เนื้อหา..." required className="w-full p-3 border rounded-lg h-32"></textarea>
-                                    <button type="submit" className="w-full bg-yellow-500 text-black font-bold py-3 rounded-lg">ประกาศ</button>
+                                    <textarea name="content" placeholder="เนื้อหาประกาศ..." required className="w-full p-3 border rounded-lg h-32"></textarea>
+                                    <button type="submit" className="w-full bg-yellow-500 text-black font-bold py-3 rounded-lg">โพสต์ประกาศ</button>
                                 </form>
                             </div>
                         )}
 
                         {activeTab === 'stores' && (
                             <div>
-                                <h3 className="font-bold text-lg mb-4">🏪 เพิ่มร้านค้า</h3>
+                                <h3 className="font-bold text-lg mb-4">🏪 เพิ่มร้านค้าใหม่</h3>
                                 <form onSubmit={addStore} className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
                                     <input name="stall" placeholder="หมายเลขล็อค (A-01)" className="w-full p-3 border rounded-lg" required />
                                     <input name="name" placeholder="ชื่อร้าน" className="w-full p-3 border rounded-lg" required />
-                                    <input name="rent" type="number" placeholder="ค่าเช่า" className="w-full p-3 border rounded-lg" required />
-                                    <input name="pass" placeholder="รหัสผ่าน" className="w-full p-3 border rounded-lg" required />
+                                    <input name="rent" type="number" placeholder="ค่าเช่าพื้นฐาน" className="w-full p-3 border rounded-lg" required />
+                                    <input name="pass" placeholder="รหัสผ่านผู้เช่า" className="w-full p-3 border rounded-lg" required />
                                     <select name="status" className="w-full p-3 border rounded-lg bg-white" required>
                                         <option value="เปิดใช้งาน">🟢 เปิดใช้งาน</option>
                                         <option value="ปิดใช้งาน">🔴 ปิดใช้งาน</option>
                                     </select>
-                                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">บันทึกร้าน</button>
+                                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">บันทึกร้านค้า</button>
                                 </form>
                             </div>
                         )}
                     </div>
 
-                    <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4">
+                    <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4 shadow-lg">
                         <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 ${activeTab==='bills'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">💰</span><span className="text-xs">บิล</span></button>
                         <button onClick={() => setActiveTab('repairs')} className={`flex flex-col items-center p-2 ${activeTab==='repairs'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">🛠️</span><span className="text-xs">ซ่อม</span></button>
                         <button onClick={() => setActiveTab('announcements')} className={`flex flex-col items-center p-2 ${activeTab==='announcements'?'text-yellow-600':'text-gray-400'}`}><span className="text-xl">📢</span><span className="text-xs">ประกาศ</span></button>
@@ -308,8 +370,8 @@
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        setBills((data.bills || []).filter(b => b["หมายเลขล็อค"] && b["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
-                        setRepairs((data.repairs || []).filter(r => r["หมายเลขล็อค"] && r["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
+                        setBills((data.bills || []).filter(b => b["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
+                        setRepairs((data.repairs || []).filter(r => r["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
                         setAnnouncements((data.announcements || []).reverse());
                     }
                 } catch (err) {}
@@ -319,15 +381,16 @@
 
             const submitRepair = async (e) => {
                 e.preventDefault();
-                showToast("กำลังส่ง...");
+                showToast("กำลังส่งข้อมูลแจ้งซ่อม...");
                 const form = e.target;
                 await fetch(SYSTEM_DB_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'addRepair', stall: user.stall, category: form.category.value, detail: form.detail.value })
                 });
-                showToast("แจ้งซ่อมสำเร็จ!");
+                showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
                 form.reset();
-                setTimeout(loadTenantData, 1000); 
+                setTimeout(loadTenantData, 1000);
+                setActiveTab('repair');
             };
 
             return (
@@ -343,70 +406,94 @@
                     <div className="p-4">
                         {activeTab === 'home' && (
                             <div className="space-y-3">
-                                <h3 className="font-bold text-lg mb-2">📢 ประกาศ</h3>
-                                {announcements.map((ann, idx) => (
-                                    <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-yellow-400 space-y-1">
-                                        <h4 className="font-bold text-gray-800 text-base">{ann["หัวข้อ"]}</h4>
-                                        <p className="text-sm text-gray-600">{ann["เนื้อหา"]}</p>
-                                        <p className="text-xs text-gray-400 pt-2">{ann["วันที่"]}</p>
+                                <h3 className="font-bold text-lg mb-2">📢 ประกาศจากตลาด</h3>
+                                {announcements.length === 0 ? (
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-yellow-400">
+                                        <h4 className="font-bold text-gray-800">ยินดีต้อนรับสู่ 88 GARAGE</h4>
+                                        <p className="text-sm text-gray-600 mt-1">ยังไม่มีประกาศจากแอดมินในขณะนี้</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    announcements.map((ann, idx) => (
+                                        <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-yellow-400 space-y-1">
+                                            <h4 className="font-bold text-gray-800 text-base">{ann["หัวข้อ"]}</h4>
+                                            <p className="text-sm text-gray-600">{ann["เนื้อหา"]}</p>
+                                            <p className="text-xs text-gray-400 pt-2">{ann["วันที่"]}</p>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         )}
 
                         {activeTab === 'bills' && (
                             <div className="space-y-3">
-                                <h3 className="font-bold text-lg mb-2">🧾 บิลค่าเช่า</h3>
-                                {bills.map((b, idx) => (
-                                    <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border space-y-2">
-                                        <div className="flex justify-between items-center border-b pb-2">
-                                            <span className="font-bold text-gray-800">{b["ประจำเดือน"]}</span>
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${b["สถานะการจ่ายเงิน"] === 'จ่ายแล้ว' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {b["สถานะการจ่ายเงิน"]}
-                                            </span>
-                                        </div>
-                                        <div className="text-sm text-gray-600 space-y-1">
-                                            <div className="flex justify-between"><span>ค่าเช่าพื้นที่:</span><span>฿{b["ค่าเช่า"]}</span></div>
-                                            <div className="flex justify-between"><span>ค่าน้ำ ({b["หน่วยน้ำ"]} น.):</span><span>฿{b["รวมค่าน้ำ(50บ.)"]}</span></div>
-                                            <div className="flex justify-between"><span>ค่าไฟ ({b["หน่วยไฟ"]} น.):</span><span>฿{b["รวมค่าไฟ(10บ.)"]}</span></div>
-                                            <div className="flex justify-between"><span>ค่าส่วนกลาง:</span><span>฿{b["ส่วนกลาง"]}</span></div>
-                                        </div>
-                                        <div className="border-t pt-2 flex justify-between items-center font-bold text-base text-gray-900">
-                                            <span>ยอดสุทธิ:</span><span className="text-blue-600">฿{b["ยอดรวมสุทธิ"]}</span>
-                                        </div>
+                                <h3 className="font-bold text-lg mb-2">🧾 บิลค่าเช่าประจำเดือน</h3>
+                                {bills.length === 0 ? (
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border text-center py-8 text-gray-400">
+                                        ยังไม่มีบิลค่าเช่าในระบบ
                                     </div>
-                                ))}
+                                ) : (
+                                    bills.map((b, idx) => (
+                                        <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border space-y-2">
+                                            <div className="flex justify-between items-center border-b pb-2">
+                                                <span className="font-bold text-gray-800">ประจำเดือน: {b["ประจำเดือน"]}</span>
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${b["สถานะการจ่ายเงิน"] === 'จ่ายแล้ว' ? 'bg-green-100 text-green-700' : b["สถานะการจ่ายเงิน"] === 'ค้างจ่าย' ? 'bg-red-100 text-red-700' : b["สถานะการจ่ายเงิน"] === 'จ่ายล่าช้า' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    {b["สถานะการจ่ายเงิน"] || 'รอชำระ'}
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-gray-600 space-y-1">
+                                                <div className="flex justify-between"><span>ค่าเช่าพื้นที่:</span><span>฿{Number(b["ค่าเช่า"]).toLocaleString()}</span></div>
+                                                {Number(b["ค้างชำระ"]) > 0 && <div className="flex justify-between text-red-500"><span>ค้างชำระเดิม:</span><span>฿{Number(b["ค้างชำระ"]).toLocaleString()}</span></div>}
+                                                <div className="flex justify-between"><span>ค่าน้ำ ({b["หน่วยน้ำ"]} น.):</span><span>฿{Number(b["รวมค่าน้ำ(50บ.)"]).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>ค่าไฟ ({b["หน่วยไฟ"]} น.):</span><span>฿{Number(b["รวมค่าไฟ(10บ.)"]).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>ค่าส่วนกลาง:</span><span>฿{Number(b["ส่วนกลาง"]).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>ค่าอินเทอร์เน็ต:</span><span>฿{Number(b["ค่าอินเทอร์เน็ต"]).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>บริการอื่นๆ:</span><span>฿{Number(b["บริการอื่นๆ"]).toLocaleString()}</span></div>
+                                                <div className="flex justify-between text-green-600"><span>ส่วนลด ({b["ส่วนลด(%)"]}):</span><span>หักส่วนลดแล้ว</span></div>
+                                            </div>
+                                            <div className="border-t pt-2 flex justify-between items-center font-bold text-base text-gray-900">
+                                                <span>ยอดรวมสุทธิ:</span>
+                                                <span className="text-lg text-blue-600">฿{Number(b["ยอดรวมสุทธิ"]).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         )}
 
                         {activeTab === 'repair' && (
                             <div className="space-y-4">
-                                <h3 className="font-bold text-lg">🛠️ แจ้งซ่อม</h3>
+                                <h3 className="font-bold text-lg">🛠️ แจ้งซ่อมปัญหา</h3>
                                 <form onSubmit={submitRepair} className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
                                     <select name="category" className="w-full p-3 border rounded-lg bg-white" required>
+                                        <option value="">-- เลือกหมวดหมู่ปัญหา --</option>
                                         <option value="ไฟฟ้า">ไฟฟ้า / หลอดไฟ</option>
                                         <option value="ประปา">ประปา / น้ำรั่ว</option>
                                         <option value="โครงสร้าง">โครงสร้าง / หลังคา</option>
                                         <option value="อื่นๆ">อื่นๆ</option>
                                     </select>
-                                    <textarea name="detail" placeholder="รายละเอียด..." className="w-full p-3 border rounded-lg h-24" required></textarea>
+                                    <textarea name="detail" placeholder="รายละเอียดปัญหา..." className="w-full p-3 border rounded-lg h-28" required></textarea>
                                     <button type="submit" className="w-full bg-red-500 text-white font-bold py-3 rounded-lg">ส่งแจ้งซ่อม</button>
                                 </form>
 
                                 <div>
-                                    <h4 className="font-bold text-md mb-2">📋 ประวัติแจ้งซ่อมของคุณ</h4>
+                                    <h4 className="font-bold text-md mb-2">📋 ประวัติการแจ้งซ่อมของคุณ</h4>
                                     <div className="space-y-2">
-                                        {repairs.map((r, idx) => (
-                                            <div key={idx} className="bg-white p-3 rounded-xl border space-y-1 text-sm">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="font-bold">{r["หมวดหมู่"]}</span>
-                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${r["สถานะซ่อม"] === 'เสร็จสิ้น' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                        {r["สถานะซ่อม"]}
-                                                    </span>
+                                        {repairs.length === 0 ? (
+                                            <p className="text-center text-gray-400 py-6 bg-white rounded-xl border text-sm">ยังไม่มีรายการแจ้งซ่อม</p>
+                                        ) : (
+                                            repairs.map((r, idx) => (
+                                                <div key={idx} className="bg-white p-3 rounded-xl border space-y-1 text-sm">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-gray-800">{r["หมวดหมู่"]}</span>
+                                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${r["สถานะซ่อม"] === 'เสร็จสิ้น' ? 'bg-green-100 text-green-700' : r["สถานะซ่อม"] === 'กำลังดำเนินการ' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-700'}`}>
+                                                            {r["สถานะซ่อม"]}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-gray-600 text-xs">{r["รายละเอียด"]}</p>
+                                                    <p className="text-[10px] text-gray-400">แจ้งเมื่อ: {r["วันที่"]}</p>
                                                 </div>
-                                                <p className="text-gray-600 text-xs bg-gray-50 p-2 rounded">{r["รายละเอียด"]}</p>
-                                            </div>
-                                        ))}
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             </div>
