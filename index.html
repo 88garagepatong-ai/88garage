@@ -8,6 +8,10 @@
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // ใช้ลิงก์ของคุณที่ส่งมาล่าสุด
+        const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbykSUkXvWB57Iz9SFFCqpMuGF0tnNv6yMHwdi1ad8f63pURuEZhC8-SgvXCq8nMnQS7Nw/exec"; 
+    </script>
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; padding-bottom: 70px; }
         .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
@@ -20,7 +24,6 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbwOS_LgNJxAty50D0mxU7LizPUztAoAS8WBjtfGI3I1prb6WSwEjKavGqU97CNXdxB_Vg/exec"; 
 
         const showToast = (message) => {
             const toast = document.createElement('div');
@@ -59,7 +62,7 @@
                         showToast(result.message || 'ชื่อล็อคหรือรหัสผ่านไม่ถูกต้อง');
                     }
                 } catch (error) {
-                    showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+                    showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการตั้งค่า URL");
                 }
                 setIsLoading(false);
             };
@@ -92,7 +95,7 @@
             const [repairs, setRepairs] = useState([]);
             const [bills, setBills] = useState([]);
             const [stores, setStores] = useState([]);
-            const [billToDelete, setBillToDelete] = useState(null);
+            const [billToDelete, setBillToDelete] = useState(null); // สำหรับป๊อปอัปลบบิล
 
             const loadAdminData = async () => {
                 try {
@@ -156,11 +159,11 @@
                 const form = e.target;
                 
                 if (Number(form.currWater.value) < Number(form.prevWater.value)) {
-                    showToast("⚠️ เลขมิเตอร์น้ำใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
+                    alert("⚠️ เลขมิเตอร์น้ำใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
                     return;
                 }
                 if (Number(form.currElec.value) < Number(form.prevElec.value)) {
-                    showToast("⚠️ เลขมิเตอร์ไฟใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
+                    alert("⚠️ เลขมิเตอร์ไฟใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
                     return;
                 }
 
@@ -260,7 +263,7 @@
                                                                 <option value="ค้างจ่าย">🔴 ค้างจ่าย</option>
                                                                 <option value="จ่ายล่าช้า">🟠 จ่ายล่าช้า</option>
                                                             </select>
-                                                            <button onClick={() => setBillToDelete(b["ID บิล"])} className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100 transition-colors">
+                                                            <button onClick={() => { if(b["ID บิล"]) setBillToDelete(b["ID บิล"]); else alert("บิลเก่านี้ไม่มี ID ไม่สามารถลบได้ กรุณาลบใน Sheet โดยตรง"); }} className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100 transition-colors">
                                                                 🗑️ ลบบิล
                                                             </button>
                                                         </div>
@@ -366,8 +369,11 @@
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        setBills((data.bills || []).filter(b => b["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
-                        setRepairs((data.repairs || []).filter(r => r["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
+                        // ปรับปรุงการกรอง: ตัดช่องว่างออก (trim) เพื่อให้ค้นหาแม่นยำขึ้น
+                        const userStall = String(user.stall).trim().toUpperCase();
+                        
+                        setBills((data.bills || []).filter(b => String(b["หมายเลขล็อค"] || "").trim().toUpperCase() === userStall).reverse());
+                        setRepairs((data.repairs || []).filter(r => String(r["หมายเลขล็อค"] || "").trim().toUpperCase() === userStall).reverse());
                         setAnnouncements((data.announcements || []).reverse());
                     }
                 } catch (err) {}
@@ -385,7 +391,7 @@
                 });
                 showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
                 form.reset();
-                setTimeout(loadTenantData, 1000);
+                setTimeout(loadTenantData, 1000); // หน่วงเวลา 1 วิ ให้ sheet บันทึกก่อนดึงข้อมูล
                 setActiveTab('repair');
             };
 
