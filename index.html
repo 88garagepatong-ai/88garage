@@ -8,10 +8,6 @@
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // ใส่ URL ล่าสุดของคุณไว้ให้แล้วครับ
-        const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbwOS_LgNJxAty50D0mxU7LizPUztAoAS8WBjtfGI3I1prb6WSwEjKavGqU97CNXdxB_Vg/exec"; 
-    </script>
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; padding-bottom: 70px; }
         .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
@@ -24,6 +20,7 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
+        const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbwOS_LgNJxAty50D0mxU7LizPUztAoAS8WBjtfGI3I1prb6WSwEjKavGqU97CNXdxB_Vg/exec"; 
 
         const showToast = (message) => {
             const toast = document.createElement('div');
@@ -62,7 +59,7 @@
                         showToast(result.message || 'ชื่อล็อคหรือรหัสผ่านไม่ถูกต้อง');
                     }
                 } catch (error) {
-                    showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบ URL");
+                    showToast("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
                 }
                 setIsLoading(false);
             };
@@ -102,7 +99,6 @@
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        // Reverse arrays so newest comes first
                         setRepairs((data.repairs || []).reverse());
                         setBills((data.bills || []).reverse());
                         setStores(data.stores || []);
@@ -160,11 +156,11 @@
                 const form = e.target;
                 
                 if (Number(form.currWater.value) < Number(form.prevWater.value)) {
-                    alert("⚠️ เลขมิเตอร์น้ำใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
+                    showToast("⚠️ เลขมิเตอร์น้ำใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
                     return;
                 }
                 if (Number(form.currElec.value) < Number(form.prevElec.value)) {
-                    alert("⚠️ เลขมิเตอร์ไฟใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
+                    showToast("⚠️ เลขมิเตอร์ไฟใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
                     return;
                 }
 
@@ -277,7 +273,7 @@
                             </div>
                         )}
 
-                        {}
+                        {/* ป๊อปอัป ยืนยันการลบ */}
                         {billToDelete && (
                             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
                                 <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
