@@ -93,22 +93,17 @@
             const [activeTab, setActiveTab] = useState('bills');
             const [repairs, setRepairs] = useState([]);
             const [bills, setBills] = useState([]);
-            const [stores, setStores] = useState([]);
-            const [isFetching, setIsFetching] = useState(false);
 
             const loadAdminData = async () => {
-                setIsFetching(true);
                 try {
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        // Reverse array to show newest first
+                        // ใช้ .reverse() เพื่อให้รายการใหม่ล่าสุดอยู่ข้างบน
                         setRepairs((data.repairs || []).reverse());
                         setBills((data.bills || []).reverse());
-                        setStores(data.stores || []);
                     }
                 } catch (err) {}
-                setIsFetching(false);
             };
 
             useEffect(() => { loadAdminData(); }, []);
@@ -120,7 +115,7 @@
                     body: JSON.stringify({ action: 'updateRepairStatus', repairId: repairId, repairStatus: newStatus })
                 });
                 showToast("อัปเดตสำเร็จ!");
-                setTimeout(loadAdminData, 1000); // หน่วงเวลาดึงข้อมูลใหม่ เพื่อให้ Sheet บันทึกเสร็จก่อน
+                setTimeout(loadAdminData, 1000); // หน่วงเวลา 1 วิให้ Sheet บันทึกเสร็จ
             };
 
             const updatePaymentStatus = async (billId, newStatus) => {
@@ -180,7 +175,7 @@
                 });
                 showToast("ออกบิลสำเร็จ!");
                 form.reset();
-                setTimeout(loadAdminData, 1000);
+                setTimeout(loadAdminData, 1000); // หน่วงเวลาดึงข้อมูลใหม่
             };
 
             const addAnnouncement = async (e) => {
@@ -329,20 +324,18 @@
             const [bills, setBills] = useState([]);
             const [repairs, setRepairs] = useState([]);
             const [announcements, setAnnouncements] = useState([]);
-            const [isFetching, setIsFetching] = useState(false);
 
             const loadTenantData = async () => {
-                setIsFetching(true);
                 try {
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
+                        // กรองข้อมูลเฉพาะของล็อคตัวเอง และจัดเรียงใหม่ล่าสุดขึ้นก่อน
                         setBills((data.bills || []).filter(b => b["หมายเลขล็อค"] && b["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
                         setRepairs((data.repairs || []).filter(r => r["หมายเลขล็อค"] && r["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
                         setAnnouncements((data.announcements || []).reverse());
                     }
                 } catch (err) {}
-                setIsFetching(false);
             };
 
             useEffect(() => { loadTenantData(); }, []);
@@ -351,17 +344,13 @@
                 e.preventDefault();
                 showToast("กำลังส่งข้อมูลแจ้งซ่อม...");
                 const form = e.target;
-                try {
-                    await fetch(SYSTEM_DB_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'addRepair', stall: user.stall, category: form.category.value, detail: form.detail.value })
-                    });
-                    showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
-                    form.reset();
-                    setTimeout(loadTenantData, 1000); // หน่วงเวลา 1 วิ รอ Sheet บันทึกเสร็จแล้วดึงข้อมูลใหม่
-                } catch(err) {
-                    showToast("เกิดข้อผิดพลาดในการแจ้งซ่อม");
-                }
+                await fetch(SYSTEM_DB_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'addRepair', stall: user.stall, category: form.category.value, detail: form.detail.value })
+                });
+                showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
+                form.reset();
+                setTimeout(loadTenantData, 1000); // หน่วงเวลา 1 วิ รอ Sheet บันทึกเสร็จแล้วดึงข้อมูลใหม่มาโชว์
             };
 
             return (
