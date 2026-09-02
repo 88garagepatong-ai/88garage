@@ -94,17 +94,21 @@
             const [repairs, setRepairs] = useState([]);
             const [bills, setBills] = useState([]);
             const [stores, setStores] = useState([]);
+            const [isFetching, setIsFetching] = useState(false);
 
             const loadAdminData = async () => {
+                setIsFetching(true);
                 try {
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        setRepairs(data.repairs || []);
-                        setBills(data.bills || []);
+                        // Reverse array to show newest first
+                        setRepairs((data.repairs || []).reverse());
+                        setBills((data.bills || []).reverse());
                         setStores(data.stores || []);
                     }
                 } catch (err) {}
+                setIsFetching(false);
             };
 
             useEffect(() => { loadAdminData(); }, []);
@@ -116,7 +120,7 @@
                     body: JSON.stringify({ action: 'updateRepairStatus', repairId: repairId, repairStatus: newStatus })
                 });
                 showToast("อัปเดตสำเร็จ!");
-                loadAdminData();
+                setTimeout(loadAdminData, 1000); // หน่วงเวลาดึงข้อมูลใหม่ เพื่อให้ Sheet บันทึกเสร็จก่อน
             };
 
             const updatePaymentStatus = async (billId, newStatus) => {
@@ -126,7 +130,7 @@
                     body: JSON.stringify({ action: 'updateBillStatus', billId: billId, paymentStatus: newStatus })
                 });
                 showToast("อัปเดตสำเร็จ!");
-                loadAdminData();
+                setTimeout(loadAdminData, 1000);
             };
 
             const addStore = async (e) => {
@@ -139,14 +143,13 @@
                 });
                 showToast("บันทึกร้านค้าสำเร็จ!");
                 form.reset();
-                loadAdminData();
+                setTimeout(loadAdminData, 1000);
             };
 
             const addBill = async (e) => {
                 e.preventDefault();
                 const form = e.target;
                 
-                // ตรวจสอบความถูกต้องมิเตอร์
                 if (Number(form.currWater.value) < Number(form.prevWater.value)) {
                     alert("⚠️ เลขมิเตอร์น้ำใหม่ ต้องไม่น้อยกว่าเลขเดิม!");
                     return;
@@ -177,7 +180,7 @@
                 });
                 showToast("ออกบิลสำเร็จ!");
                 form.reset();
-                loadAdminData();
+                setTimeout(loadAdminData, 1000);
             };
 
             const addAnnouncement = async (e) => {
@@ -195,7 +198,10 @@
             return (
                 <div className="app-container bg-gray-50 relative pb-20">
                     <div className="bg-gray-900 text-white p-4 flex justify-between items-center sticky top-0 z-10">
-                        <h2 className="font-bold text-lg text-yellow-400">Admin Panel</h2>
+                        <div className="flex items-center gap-2">
+                            <h2 className="font-bold text-lg text-yellow-400">Admin Panel</h2>
+                            {isFetching && <span className="text-[10px] bg-gray-700 px-2 py-0.5 rounded-full animate-pulse">กำลังซิงค์ข้อมูล...</span>}
+                        </div>
                         <button onClick={onLogout} className="text-sm bg-gray-700 px-3 py-1 rounded">ออกระบบ</button>
                     </div>
 
@@ -234,11 +240,11 @@
                                 <div className="mt-6">
                                     <h4 className="font-bold text-md mb-2">📋 จัดการสถานะการจ่ายเงินของบิลทั้งหมด</h4>
                                     <div className="space-y-2">
-                                        {bills.map((b, idx) => (
+                                        {bills.length === 0 ? <p className="text-sm text-gray-500">ยังไม่มีประวัติบิล</p> : bills.map((b, idx) => (
                                             <div key={idx} className="bg-white p-3 rounded-xl border flex justify-between items-center text-sm">
                                                 <div>
                                                     <p className="font-bold">{b["หมายเลขล็อค"]} ({b["ประจำเดือน"]})</p>
-                                                    <p className="text-xs text-gray-500">ยอดสุทธิ: ฿{b["ยอดรวมสุทธิ"]}</p>
+                                                    <p className="text-xs text-gray-500">ยอดสุทธิ: ฿{(Number(b["ยอดรวมสุทธิ"])||0).toLocaleString()}</p>
                                                 </div>
                                                 <select value={b["สถานะการจ่ายเงิน"]} onChange={(e) => updatePaymentStatus(b["ID บิล"], e.target.value)} className="text-xs p-2 border rounded bg-white font-bold">
                                                     <option value="รอชำระ">🟡 รอชำระ</option>
@@ -263,14 +269,14 @@
                                         repairs.map((r, idx) => (
                                             <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border space-y-2">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="font-bold text-blue-600">{r["หมายเลขล็อค"]} ({r["หมวดหมู่"]})</span>
+                                                    <span className="font-bold text-blue-600">{r["หมายเลขล็อค"]} <span className="text-gray-500 font-normal">({r["หมวดหมู่"]})</span></span>
                                                     <select value={r["สถานะซ่อม"]} onChange={(e) => updateRepairStatus(r["ID แจ้งซ่อม"], e.target.value)} className="text-xs p-1 border rounded bg-white font-bold">
                                                         <option value="รับเรื่อง">🔴 รับเรื่อง</option>
                                                         <option value="กำลังดำเนินการ">🟡 กำลังดำเนินการ</option>
                                                         <option value="เสร็จสิ้น">🟢 เสร็จสิ้น</option>
                                                     </select>
                                                 </div>
-                                                <p className="text-sm text-gray-700">{r["รายละเอียด"]}</p>
+                                                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{r["รายละเอียด"]}</p>
                                                 <p className="text-xs text-gray-400">แจ้งเมื่อ: {r["วันที่"]}</p>
                                             </div>
                                         ))
@@ -323,17 +329,20 @@
             const [bills, setBills] = useState([]);
             const [repairs, setRepairs] = useState([]);
             const [announcements, setAnnouncements] = useState([]);
+            const [isFetching, setIsFetching] = useState(false);
 
             const loadTenantData = async () => {
+                setIsFetching(true);
                 try {
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        setBills((data.bills || []).filter(b => b["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()));
-                        setRepairs((data.repairs || []).filter(r => r["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()));
-                        setAnnouncements(data.announcements || []);
+                        setBills((data.bills || []).filter(b => b["หมายเลขล็อค"] && b["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
+                        setRepairs((data.repairs || []).filter(r => r["หมายเลขล็อค"] && r["หมายเลขล็อค"].toString().toUpperCase() === user.stall.toUpperCase()).reverse());
+                        setAnnouncements((data.announcements || []).reverse());
                     }
                 } catch (err) {}
+                setIsFetching(false);
             };
 
             useEffect(() => { loadTenantData(); }, []);
@@ -342,22 +351,28 @@
                 e.preventDefault();
                 showToast("กำลังส่งข้อมูลแจ้งซ่อม...");
                 const form = e.target;
-                await fetch(SYSTEM_DB_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'addRepair', stall: user.stall, category: form.category.value, detail: form.detail.value })
-                });
-                showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
-                form.reset();
-                loadTenantData();
-                setActiveTab('repair');
+                try {
+                    await fetch(SYSTEM_DB_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'addRepair', stall: user.stall, category: form.category.value, detail: form.detail.value })
+                    });
+                    showToast("ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว!");
+                    form.reset();
+                    setTimeout(loadTenantData, 1000); // หน่วงเวลา 1 วิ รอ Sheet บันทึกเสร็จแล้วดึงข้อมูลใหม่
+                } catch(err) {
+                    showToast("เกิดข้อผิดพลาดในการแจ้งซ่อม");
+                }
             };
 
             return (
                 <div className="app-container bg-gray-50 relative pb-20">
                     <div className="bg-gray-900 text-white p-4 flex justify-between items-center sticky top-0 z-10">
-                        <div>
-                            <h2 className="font-bold text-lg text-yellow-400">{user.stall}</h2>
-                            <p className="text-xs text-gray-300">{user.name}</p>
+                        <div className="flex items-center gap-2">
+                            <div>
+                                <h2 className="font-bold text-lg text-yellow-400">{user.stall}</h2>
+                                <p className="text-xs text-gray-300">{user.name}</p>
+                            </div>
+                            {isFetching && <span className="text-[10px] bg-gray-700 px-2 py-0.5 rounded-full animate-pulse ml-2">อัปเดต...</span>}
                         </div>
                         <button onClick={onLogout} className="text-sm bg-gray-700 px-3 py-1 rounded">ออกระบบ</button>
                     </div>
@@ -375,7 +390,7 @@
                                     announcements.map((ann, idx) => (
                                         <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-yellow-400 space-y-1">
                                             <h4 className="font-bold text-gray-800 text-base">{ann["หัวข้อ"]}</h4>
-                                            <p className="text-sm text-gray-600">{ann["เนื้อหา"]}</p>
+                                            <p className="text-sm text-gray-600 whitespace-pre-line">{ann["เนื้อหา"]}</p>
                                             <p className="text-xs text-gray-400 pt-2">{ann["วันที่"]}</p>
                                         </div>
                                     ))
@@ -400,18 +415,18 @@
                                                 </span>
                                             </div>
                                             <div className="text-sm text-gray-600 space-y-1">
-                                                <div className="flex justify-between"><span>ค่าเช่าพื้นที่:</span><span>฿{b["ค่าเช่า"]}</span></div>
-                                                {Number(b["ค้างชำระ"]) > 0 && <div className="flex justify-between text-red-500"><span>ค้างชำระเดิม:</span><span>฿{b["ค้างชำระ"]}</span></div>}
-                                                <div className="flex justify-between"><span>ค่าน้ำ ({b["หน่วยน้ำ"]} น.):</span><span>฿{b["รวมค่าน้ำ(50บ.)"]}</span></div>
-                                                <div className="flex justify-between"><span>ค่าไฟ ({b["หน่วยไฟ"]} น.):</span><span>฿{b["รวมค่าไฟ(10บ.)"]}</span></div>
-                                                <div className="flex justify-between"><span>ค่าส่วนกลาง:</span><span>฿{b["ส่วนกลาง"]}</span></div>
-                                                <div className="flex justify-between"><span>ค่าอินเทอร์เน็ต:</span><span>฿{b["ค่าอินเทอร์เน็ต"]}</span></div>
-                                                <div className="flex justify-between"><span>บริการอื่นๆ:</span><span>฿{b["บริการอื่นๆ"]}</span></div>
+                                                <div className="flex justify-between"><span>ค่าเช่าพื้นที่:</span><span>฿{(Number(b["ค่าเช่า"])||0).toLocaleString()}</span></div>
+                                                {Number(b["ค้างชำระ"]) > 0 && <div className="flex justify-between text-red-500"><span>ค้างชำระเดิม:</span><span>฿{(Number(b["ค้างชำระ"])||0).toLocaleString()}</span></div>}
+                                                <div className="flex justify-between"><span>ค่าน้ำ ({b["หน่วยน้ำ"]} น.):</span><span>฿{(Number(b["รวมค่าน้ำ(50บ.)"])||0).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>ค่าไฟ ({b["หน่วยไฟ"]} น.):</span><span>฿{(Number(b["รวมค่าไฟ(10บ.)"])||0).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>ค่าส่วนกลาง:</span><span>฿{(Number(b["ส่วนกลาง"])||0).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>ค่าอินเทอร์เน็ต:</span><span>฿{(Number(b["ค่าอินเทอร์เน็ต"])||0).toLocaleString()}</span></div>
+                                                <div className="flex justify-between"><span>บริการอื่นๆ:</span><span>฿{(Number(b["บริการอื่นๆ"])||0).toLocaleString()}</span></div>
                                                 <div className="flex justify-between text-green-600"><span>ส่วนลด ({b["ส่วนลด(%)"]}):</span><span>หักส่วนลดแล้ว</span></div>
                                             </div>
                                             <div className="border-t pt-2 flex justify-between items-center font-bold text-base text-gray-900">
                                                 <span>ยอดรวมสุทธิ:</span>
-                                                <span className="text-lg text-blue-600">฿{b["ยอดรวมสุทธิ"]}</span>
+                                                <span className="text-lg text-blue-600">฿{(Number(b["ยอดรวมสุทธิ"])||0).toLocaleString()}</span>
                                             </div>
                                         </div>
                                     ))
@@ -448,7 +463,7 @@
                                                             {r["สถานะซ่อม"]}
                                                         </span>
                                                     </div>
-                                                    <p className="text-gray-600 text-xs">{r["รายละเอียด"]}</p>
+                                                    <p className="text-gray-600 text-xs bg-gray-50 p-2 rounded">{r["รายละเอียด"]}</p>
                                                     <p className="text-[10px] text-gray-400">แจ้งเมื่อ: {r["วันที่"]}</p>
                                                 </div>
                                             ))
