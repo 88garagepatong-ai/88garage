@@ -11,8 +11,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // ใช้ URL ล่าสุดของคุณที่สามารถทำงานได้สมบูรณ์
-        const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbyQo8nEpVgIAYnDgjTHCMKjmf6grnXLfPL6nkeUCR7A_c46tq_MFrtKh5k5yWDZOyIs2w/exec"; 
+        // URL ของ Google Apps Script ที่คุณให้มา
+        const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbwOS_LgNJxAty50D0mxU7LizPUztAoAS8WBjtfGI3I1prb6WSwEjKavGqU97CNXdxB_Vg/exec"; 
     </script>
     
     <style>
@@ -37,7 +37,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ระบบแจ้งเตือน (Toast) ใช้แทน alert() เพื่อป้องกันเบราว์เซอร์บล็อก
+        // ระบบแจ้งเตือน (Toast) ป้องกันเว็บค้างจากการใช้ alert()
         const showToast = (message) => {
             const toast = document.createElement('div');
             toast.className = 'toast no-print';
@@ -49,6 +49,7 @@
             }, 3000);
         };
 
+        // คอมโพเนนต์สำหรับแสดงใบเสร็จเพื่อพิมพ์ PDF
         const BillReceipt = ({ bill, onClose }) => {
             return (
                 <div className="fixed inset-0 bg-gray-100 z-[9999] overflow-y-auto print:bg-white print:p-0">
@@ -142,6 +143,7 @@
             );
         };
 
+        // หน้าจอเข้าสู่ระบบ
         const LoginView = ({ onLogin }) => {
             const [stall, setStall] = useState('');
             const [password, setPassword] = useState('');
@@ -200,6 +202,7 @@
             );
         };
 
+        // แดชบอร์ดแอดมิน (Admin Panel)
         const AdminDashboard = ({ onLogout }) => {
             const [activeTab, setActiveTab] = useState('bills');
             const [repairs, setRepairs] = useState([]);
@@ -365,7 +368,7 @@
                                     <button type="submit" className="w-full bg-green-600 text-white font-bold py-3.5 rounded-lg hover:bg-green-700 shadow-md">บันทึกบิลลงระบบ</button>
                                 </form>
 
-                                {}
+                                {/* รายการบิลของ Admin */}
                                 <div className="mt-8">
                                     <div className="flex justify-between items-center mb-3">
                                         <h4 className="font-bold text-md text-gray-800">📋 ประวัติบิลทั้งหมด</h4>
@@ -426,7 +429,7 @@
                             </div>
                         )}
 
-                        {}
+                        {/* เมนูแจ้งซ่อม Admin */}
                         {activeTab === 'repairs' && (
                             <div>
                                 <div className="flex justify-between items-center mb-4">
@@ -488,7 +491,6 @@
                         )}
                     </div>
 
-                    {}
                     <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 nav-bar pb-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] no-print">
                         <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center p-2 ${activeTab==='bills'?'text-blue-600':'text-gray-400 hover:text-gray-600'}`}><span className="text-xl">💰</span><span className="text-xs font-medium mt-1">บิล</span></button>
                         <button onClick={() => setActiveTab('repairs')} className={`flex flex-col items-center p-2 ${activeTab==='repairs'?'text-blue-600':'text-gray-400 hover:text-gray-600'}`}><span className="text-xl">🛠️</span><span className="text-xs font-medium mt-1">ซ่อม</span></button>
@@ -499,6 +501,7 @@
             );
         };
 
+        // แดชบอร์ดผู้เช่า (Tenant)
         const TenantDashboard = ({ user, onLogout }) => {
             const [activeTab, setActiveTab] = useState('home');
             const [bills, setBills] = useState([]);
