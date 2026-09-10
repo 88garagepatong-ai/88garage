@@ -7,11 +7,11 @@
     
     <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // URL ของ Google Apps Script ที่คุณให้มา
+        // URL ของ Google Apps Script ที่คุณให้มาล่าสุด
         const SYSTEM_DB_URL = "https://script.google.com/macros/s/AKfycbwOS_LgNJxAty50D0mxU7LizPUztAoAS8WBjtfGI3I1prb6WSwEjKavGqU97CNXdxB_Vg/exec"; 
     </script>
     
@@ -37,7 +37,33 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ระบบแจ้งเตือน (Toast) ป้องกันเว็บค้างจากการใช้ alert()
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error: error };
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-8 text-center text-red-600 bg-red-50 min-h-screen flex flex-col justify-center items-center app-container">
+                            <div className="text-5xl mb-4">⚠️</div>
+                            <h1 className="text-2xl font-bold mb-2">พบข้อผิดพลาดในระบบ</h1>
+                            <p className="text-sm text-gray-700 mb-6 bg-white p-4 rounded border border-red-200">
+                                {this.state.error && this.state.error.toString()}
+                            </p>
+                            <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold shadow-md">
+                                รีเฟรชหน้าเว็บ
+                            </button>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         const showToast = (message) => {
             const toast = document.createElement('div');
             toast.className = 'toast no-print';
@@ -49,7 +75,6 @@
             }, 3000);
         };
 
-        // คอมโพเนนต์สำหรับแสดงใบเสร็จเพื่อพิมพ์ PDF
         const BillReceipt = ({ bill, onClose }) => {
             return (
                 <div className="fixed inset-0 bg-gray-100 z-[9999] overflow-y-auto print:bg-white print:p-0">
@@ -74,7 +99,7 @@
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">วันที่ออกบิล:</span>
-                                <span>{bill["เวลาที่บันทึกล่าสุด"]?.split(' ')[0]}</span>
+                                <span>{bill["เวลาที่บันทึกล่าสุด"] ? bill["เวลาที่บันทึกล่าสุด"].split(' ')[0] : '-'}</span>
                             </div>
                         </div>
 
@@ -143,7 +168,6 @@
             );
         };
 
-        // หน้าจอเข้าสู่ระบบ
         const LoginView = ({ onLogin }) => {
             const [stall, setStall] = useState('');
             const [password, setPassword] = useState('');
@@ -202,7 +226,6 @@
             );
         };
 
-        // แดชบอร์ดแอดมิน (Admin Panel)
         const AdminDashboard = ({ onLogout }) => {
             const [activeTab, setActiveTab] = useState('bills');
             const [repairs, setRepairs] = useState([]);
@@ -216,8 +239,8 @@
                     const res = await fetch(SYSTEM_DB_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     if (data.status === 'success') {
-                        setRepairs((data.repairs || []).reverse());
-                        setBills((data.bills || []).reverse());
+                        setRepairs(data.repairs ? data.repairs.reverse() : []);
+                        setBills(data.bills ? data.bills.reverse() : []);
                     }
                 } catch (err) {
                     showToast("ดึงข้อมูลล้มเหลว");
@@ -501,7 +524,6 @@
             );
         };
 
-        // แดชบอร์ดผู้เช่า (Tenant)
         const TenantDashboard = ({ user, onLogout }) => {
             const [activeTab, setActiveTab] = useState('home');
             const [bills, setBills] = useState([]);
@@ -688,7 +710,12 @@
             return <TenantDashboard user={user} onLogout={() => setUser(null)} />;
         };
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        ReactDOM.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>, 
+            document.getElementById('root')
+        );
     </script>
 </body>
 </html>
